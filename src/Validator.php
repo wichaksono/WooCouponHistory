@@ -4,6 +4,7 @@ namespace NeonWebId\WooCouponHistory;
 
 use Exception;
 use WC_Coupon;
+use WP_User;
 
 /**
  * Class Validator
@@ -15,8 +16,8 @@ class Validator
     /**
      * Memvalidasi apakah kupon layak digunakan oleh pelanggan.
      *
-     * @param bool $valid
-     * @param WC_Coupon $coupon
+     * @param  bool  $valid
+     * @param  WC_Coupon  $coupon
      * @return bool
      * @throws Exception
      */
@@ -39,55 +40,53 @@ class Validator
         }
 
         $currentUser = wp_get_current_user();
-        $userId      = $currentUser->ID;
 
-        // Menggunakan SQL query langsung untuk memastikan deteksi produk dalam order jamak (multiple items)
-        if (!$this->hasCustomerPurchasedProducts($userId, $requiredIds)) {
-            throw new Exception(__('Sorry, this coupon is exclusively for customers who have purchased specific products previously.', 'woocouponhistory'));
+        // Menggunakan metode yang lebih modern dan kompatibel dengan HPOS
+        if (!$this->hasCustomerPurchasedProducts($currentUser, $requiredIds)) {
+            throw new Exception(__('Sorry, this coupon is exclusively for customers who have purchased specific products previously.',
+                'woocouponhistory'));
         }
 
         return $valid;
     }
 
     /**
-     * Mengecek riwayat pembelian menggunakan database query untuk hasil yang lebih akurat pada order jamak.
+     * Mengecek riwayat pembelian menggunakan WC_Order_Query (Aman untuk HPOS & Multiple Items).
      *
-     * @param int $userId
-     * @param array<int> $productIds
+     * @param  WP_User  $user
+     * @param  array<int>  $productIds
      * @return bool
      */
-    private function hasCustomerPurchasedProducts(int $userId, array $productIds): bool
+    private function hasCustomerPurchasedProducts(WP_User $user, array $productIds): bool
     {
+        // Cari pesanan pelanggan dengan status sukses
+        $orders = wc_get_orders([
+            'customer' => [$user->ID, $user->user_email],
+            'status'   => ['wc-completed', 'wc-processing'],
+            'limit'    => -1, // Ambil semua riwayat
+            'return'   => 'ids',
+        ]);
+
+        if (empty($orders)) {
+            return false;
+        }
+
         global $wpdb;
+        $orderIdsIn = implode(',', array_map('absint', $orders));
+        $productsIn = implode(',', array_map('absint', $productIds));
 
-        // Status pesanan yang dianggap sebagai 'sudah beli'
-        $validStatuses = ['wc-completed', 'wc-processing'];
-        $statusIn      = "'" . implode("','", $validStatuses) . "'";
-        $productsIn    = implode(',', $productIds);
-
-        /**
-         * Query ini memeriksa tabel order_itemmeta untuk mencari ID produk di dalam pesanan milik user terkait.
-         * Ini lebih robust daripada wc_customer_bought_product untuk kasus order dengan banyak produk.
-         */
-        $query = $wpdb->prepare(
-            "SELECT COUNT(items.order_item_id) 
-             FROM {$wpdb->prefix}woocommerce_order_items as items
-             INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta as itemmeta ON items.order_item_id = itemmeta.order_item_id
-             INNER JOIN {$wpdb->posts} as posts ON items.order_id = posts.ID
-             INNER JOIN {$wpdb->postmeta} as postmeta ON posts.ID = postmeta.post_id
-             WHERE posts.post_type = 'shop_order'
-             AND posts.post_status IN ($statusIn)
-             AND postmeta.meta_key = '_customer_user'
-             AND postmeta.meta_value = %d
-             AND (
-                (itemmeta.meta_key = '_product_id' AND itemmeta.meta_value IN ($productsIn))
-                OR 
-                (itemmeta.meta_key = '_variation_id' AND itemmeta.meta_value IN ($productsIn))
-             )",
-            $userId
-        );
-
-        $count = $wpdb->get_var($query);
+        // Cari item di dalam pesanan-pesanan tersebut yang cocok dengan ID produk syarat
+        $count = $wpdb->get_var("
+            SELECT COUNT(order_item_id)
+            FROM {$wpdb->prefix}woocommerce_order_itemmeta
+            WHERE order_item_id IN (
+                SELECT order_item_id 
+                FROM {$wpdb->prefix}woocommerce_order_items 
+                WHERE order_id IN ($orderIdsIn)
+            )
+            AND meta_key IN ('_product_id', '_variation_id')
+            AND meta_value IN ($productsIn)
+        ");
 
         return (int) $count > 0;
     }
