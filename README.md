@@ -22,8 +22,8 @@ Plugin ini dirancang untuk meningkatkan loyalitas pelanggan dengan memberikan pe
 
 Anda dapat mengunduh versi terbaru plugin ini melalui repositori resmi di GitHub:
 
-* **GitHub Repository**: [https://github.com/wichaksono/WooCouponHistory](https://github.com/wichaksono/WooCouponHistory)
-* **Halaman Releases (Versi Stabil)**: [https://github.com/wichaksono/WooCouponHistory/releases](https://github.com/wichaksono/WooCouponHistory/releases)
+* **GitHub Repository**: https://github.com/neonwebid/WooCouponHistory
+* **Halaman Releases (Versi Stabil)**: https://github.com/neonwebid/WooCouponHistory/releases
 
 **Instruksi:**
 
