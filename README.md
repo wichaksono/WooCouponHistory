@@ -43,8 +43,8 @@ Anda dapat mengunduh versi terbaru plugin ini melalui repositori resmi di GitHub
 
 ### Cara 2: Lewat FTP/File Manager
 
-1. Buat folder baru bernama `woocouponhistory` di direktori `/wp-content/plugins/`.
-2. Unggah file `woocouponhistory.php` ke dalam folder tersebut.
+1. Buka direktori `/wp-content/plugins/`.
+2. Unggah dan Extract file `woocouponhistory.zip` ke dalam folder tersebut.
 3. Masuk ke Dashboard WordPress, buka **Plugins > Installed Plugins**.
 4. Cari **WooCouponHistory** dan klik **Activate**.
 
