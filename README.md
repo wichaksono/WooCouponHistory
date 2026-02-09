@@ -18,13 +18,35 @@ Plugin ini dirancang untuk meningkatkan loyalitas pelanggan dengan memberikan pe
 * **WooCommerce**: Aktif di situs Anda.
 * **PHP**: Versi 8.2 atau lebih tinggi.
 
+## 📥 Cara Mengunduh
+
+Anda dapat mengunduh versi terbaru plugin ini melalui repositori resmi di GitHub:
+
+* **GitHub Repository**: [https://github.com/wichaksono/WooCouponHistory](https://github.com/wichaksono/WooCouponHistory)
+* **Halaman Releases (Versi Stabil)**: [https://github.com/wichaksono/WooCouponHistory/releases](https://github.com/wichaksono/WooCouponHistory/releases)
+
+**Instruksi:**
+
+1. Buka halaman **Releases**.
+2. Unduh file `.zip` dari versi terbaru yang tersedia.
+
 ## 🛠️ Instalasi
 
+### Cara 1: Lewat Dashboard WordPress (Rekomendasi)
+
+1. Pastikan Anda sudah mengunduh file `.zip` dari halaman Releases GitHub.
+2. Masuk ke area Admin WordPress.
+3. Buka menu **Plugins > Add New Plugin**.
+4. Klik tombol **Upload Plugin** di bagian atas.
+5. Pilih file `.zip` tersebut, lalu klik **Install Now**.
+6. Setelah selesai, klik **Activate Plugin**.
+
+### Cara 2: Lewat FTP/File Manager
+
 1. Buat folder baru bernama `woocouponhistory` di direktori `/wp-content/plugins/`.
-2. Masukkan file `woocouponhistory.php` ke dalam folder tersebut.
-3. Masuk ke area Admin WordPress.
-4. Navigasikan ke **Plugins > Installed Plugins**.
-5. Cari **WooCouponHistory** dan klik **Activate**.
+2. Unggah file `woocouponhistory.php` ke dalam folder tersebut.
+3. Masuk ke Dashboard WordPress, buka **Plugins > Installed Plugins**.
+4. Cari **WooCouponHistory** dan klik **Activate**.
 
 ## 📖 Cara Penggunaan
 
