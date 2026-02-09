@@ -15,8 +15,8 @@ class Validator
     /**
      * Memvalidasi apakah kupon layak digunakan oleh pelanggan.
      *
-     * @param  bool  $valid
-     * @param  WC_Coupon  $coupon
+     * @param bool $valid
+     * @param WC_Coupon $coupon
      * @return bool
      * @throws Exception
      */
@@ -28,7 +28,7 @@ class Validator
             return $valid;
         }
 
-        $requiredIds = array_filter(array_map('trim', explode(',', $requiredIdsString)));
+        $requiredIds = array_filter(array_map('absint', explode(',', $requiredIdsString)));
 
         if (empty($requiredIds)) {
             return $valid;
@@ -39,22 +39,56 @@ class Validator
         }
 
         $currentUser = wp_get_current_user();
-        $userEmail   = $currentUser->user_email;
         $userId      = $currentUser->ID;
-        $hasBought   = false;
 
-        foreach ($requiredIds as $productId) {
-            if (wc_customer_bought_product($userEmail, $userId, (int) $productId)) {
-                $hasBought = true;
-                break;
-            }
-        }
-
-        if (!$hasBought) {
-            throw new Exception(__('Sorry, this coupon is exclusively for customers who have purchased specific products previously.',
-                'woocouponhistory'));
+        // Menggunakan SQL query langsung untuk memastikan deteksi produk dalam order jamak (multiple items)
+        if (!$this->hasCustomerPurchasedProducts($userId, $requiredIds)) {
+            throw new Exception(__('Sorry, this coupon is exclusively for customers who have purchased specific products previously.', 'woocouponhistory'));
         }
 
         return $valid;
+    }
+
+    /**
+     * Mengecek riwayat pembelian menggunakan database query untuk hasil yang lebih akurat pada order jamak.
+     *
+     * @param int $userId
+     * @param array<int> $productIds
+     * @return bool
+     */
+    private function hasCustomerPurchasedProducts(int $userId, array $productIds): bool
+    {
+        global $wpdb;
+
+        // Status pesanan yang dianggap sebagai 'sudah beli'
+        $validStatuses = ['wc-completed', 'wc-processing'];
+        $statusIn      = "'" . implode("','", $validStatuses) . "'";
+        $productsIn    = implode(',', $productIds);
+
+        /**
+         * Query ini memeriksa tabel order_itemmeta untuk mencari ID produk di dalam pesanan milik user terkait.
+         * Ini lebih robust daripada wc_customer_bought_product untuk kasus order dengan banyak produk.
+         */
+        $query = $wpdb->prepare(
+            "SELECT COUNT(items.order_item_id) 
+             FROM {$wpdb->prefix}woocommerce_order_items as items
+             INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta as itemmeta ON items.order_item_id = itemmeta.order_item_id
+             INNER JOIN {$wpdb->posts} as posts ON items.order_id = posts.ID
+             INNER JOIN {$wpdb->postmeta} as postmeta ON posts.ID = postmeta.post_id
+             WHERE posts.post_type = 'shop_order'
+             AND posts.post_status IN ($statusIn)
+             AND postmeta.meta_key = '_customer_user'
+             AND postmeta.meta_value = %d
+             AND (
+                (itemmeta.meta_key = '_product_id' AND itemmeta.meta_value IN ($productsIn))
+                OR 
+                (itemmeta.meta_key = '_variation_id' AND itemmeta.meta_value IN ($productsIn))
+             )",
+            $userId
+        );
+
+        $count = $wpdb->get_var($query);
+
+        return (int) $count > 0;
     }
 }
